@@ -37,7 +37,7 @@ The Winapi.Hook unit defines several hook types:
 
 - TLowLevelMouseHook - enables you to monitor mouse input events about to be posted in a thread input queue.
 
-T_LL_KeyboardHook example
+## LowLevel KeyboardHook example
 
 To show you how to use the Winapi.Hooks, here's a section of the keyboard hook demo application:
 
@@ -67,3 +67,4 @@ begin
     end;
 end;
 ```
+![Demo Application](https://github.com/JensBorrisholt/Hooks/blob/master/Demo.PNG)
