@@ -60,8 +60,7 @@ const
 type
   THook = class;
   THookMessage = TMessage;
-  THookNotify = procedure(Hook: THook; var HookMsg: THookMessage) of object;
-  THookNotifyReference = reference to procedure(Hook: THook; var HookMsg: THookMessage);
+  THookNotify = reference to procedure(Hook: THook; var HookMsg: THookMessage);
 
   TKeyState = (ksKeyDown = 0, ksKeyIsDown = 1, ksKeyUp = 2);
   pKBDLLHOOKSTRUCT = ^KBDLLHOOKSTRUCT;
@@ -119,8 +118,6 @@ type
 
     FOnPreExecute: THookNotify;
     FOnPostExecute: THookNotify;
-    FOnPostExecuteRef: THookNotifyReference;
-    FOnPreExecuteRef: THookNotifyReference;
     procedure HookProc(var HookMsg: THookMessage);
     procedure SetActive(const Value: Boolean);
   private
@@ -134,9 +131,6 @@ type
     property OnPreExecute: THookNotify read FOnPreExecute write FOnPreExecute;
     property OnPostExecute: THookNotify read FOnPostExecute write FOnPostExecute;
 
-    property OnPreExecuteRef: THookNotifyReference read FOnPreExecuteRef write FOnPreExecuteRef;
-    property OnPostExecuteRef: THookNotifyReference read FOnPostExecuteRef write FOnPostExecuteRef;
-
     property ThreadID: Integer read FThreadID write FThreadID;
   public
     constructor Create;
@@ -148,8 +142,6 @@ type
     property Active;
     property OnPreExecute;
     property OnPostExecute;
-    property OnPreExecuteRef;
-    property OnPostExecuteRef;
     property ThreadID;
   end;
 
@@ -359,16 +351,12 @@ procedure TCustomHook.PostExecute(var HookMsg: THookMessage);
 begin
   if Assigned(FOnPostExecute) then
     FOnPostExecute(THook(Self), HookMsg)
-  else if Assigned(FOnPostExecuteRef) then
-    FOnPostExecuteRef(THook(Self), HookMsg)
 end;
 
 procedure TCustomHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
 begin
   if Assigned(FOnPreExecute) then
-    FOnPreExecute(THook(Self), HookMsg)
-  else if Assigned(FOnPreExecuteRef) then
-    FOnPreExecuteRef(THook(Self), HookMsg);
+    FOnPreExecute(THook(Self), HookMsg);
 
   Handled := HookMsg.Result <> 0;
 end;
