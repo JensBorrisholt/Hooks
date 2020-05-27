@@ -290,7 +290,9 @@ type
 implementation
 
 uses
-  System.SysUtils, VCL.Menus;
+  System.SysUtils
+//  , VCL.Menus
+  ;
 
 { TLowLevelMouseHook }
 
