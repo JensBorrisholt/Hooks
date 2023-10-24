@@ -45,7 +45,7 @@ To show you how to use the Winapi.Hooks, here's a section of the keyboard hook d
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
   FHook := THookInstance<TLowLevelKeyboardHook>.CreateHook(Self);
-  FHook.OnPreExecuteRef := procedure(Hook: THook; var HookMsg: THookMessage)
+  FHook.OnPreExecute := procedure(Hook: THook; var HookMsg: THookMessage)
     var
       LLKeyBoardHook: TLowLevelKeyboardHook;
       ScanCode: integer;
