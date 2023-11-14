@@ -158,24 +158,24 @@ type
 
   TCallWndProcHook = class sealed(THook)
   private
-    FCWPStruct: TCWPStruct;
+    FCwpRetStruct: TCwpRetStruct;
   protected
     function GetHookID: Integer; override;
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
     procedure PostExecute(var HookMsg: THookMessage); override;
   public
-    property CWPStruct: TCWPStruct read FCWPStruct;
+    property CwpRetStruct : TCwpRetStruct read FCwpRetStruct;
   end;
 
   TCallWndProcRetHook = class sealed(THook)
   private
-    FCWPRetStruct: TCWPRetStruct;
+    FCWPRetStruct: TCwpRetStruct;
   protected
     function GetHookID: Integer; override;
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
     procedure PostExecute(var HookMsg: THookMessage); override;
   public
-    property CWPRetStruct: TCWPRetStruct read FCWPRetStruct;
+    property CWPRetStruct: TCwpRetStruct read FCWPRetStruct;
   end;
 
   TCBTHook = class sealed(THook)
@@ -474,13 +474,13 @@ end;
 procedure TCallWndProcHook.PostExecute(var HookMsg: THookMessage);
 begin
   inherited;
-  ZeroMemory(@FCWPStruct, SizeOf(TCWPStruct));
+  ZeroMemory(@FCwpRetStruct, SizeOf(TCwpRetStruct));
 end;
 
 procedure TCallWndProcHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
 begin
+  FCwpRetStruct := pCwpRetStruct(HookMsg.WParam)^;
   inherited;
-  FCWPStruct := PCWPStruct(HookMsg.LParam)^;
 end;
 
 { TCallWndProcRetHook }
@@ -493,12 +493,12 @@ end;
 procedure TCallWndProcRetHook.PostExecute(var HookMsg: THookMessage);
 begin
   inherited;
-  ZeroMemory(@FCWPRetStruct, SizeOf(TCWPRetStruct));
+  ZeroMemory(@FCWPRetStruct, SizeOf(TCwpRetStruct));
 end;
 
 procedure TCallWndProcRetHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
 begin
-  FCWPRetStruct := pCWPRetStruct(HookMsg.LParam)^;
+  FCWPRetStruct := pCwpRetStruct(HookMsg.LParam)^;
   inherited;
 end;
 
@@ -593,7 +593,7 @@ begin
 
   GetKeyboardState(KBS);
 
-  KeyName.KeyExtName :=GetKeyName;
+  KeyName.KeyExtName := GetKeyName;
   inherited;
 end;
 
