@@ -45,7 +45,6 @@ begin
       ScanCode: integer;
     begin
       LLKeyBoardHook := TLowLevelKeyboardHook(Hook);
-
       if LLKeyBoardHook.LowLevelKeyStates.KeyState <> ksKeyDown then
         exit;
 

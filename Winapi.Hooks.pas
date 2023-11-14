@@ -89,11 +89,12 @@ type
 
   pKeyNames = ^TKeyNames;
 
-  TKeyNames = packed record
+  TKeyNames = class
+  public
     ScanCode: Integer;
-    KeyChar: array [0 .. 1] of Char;
+    SpeciaKkey: Boolean;
     KeyExtName: string;
-    // array [0 .. MAX_KEY_NAME_LENGTH] of Char;
+    procedure Clear;
   end;
 
   TKeyStates = packed record
@@ -143,6 +144,16 @@ type
     property OnPreExecute;
     property OnPostExecute;
     property ThreadID;
+  end;
+
+  TBaseKeyboardHook = class abstract(THook)
+  strict private
+    FKeyNames: TKeyNames;
+  published
+    property KeyName: TKeyNames read FKeyNames;
+  public
+    constructor Create;
+    destructor Destroy; override;
   end;
 
   TCallWndProcHook = class sealed(THook)
@@ -198,17 +209,15 @@ type
     function GetHookID: Integer; override;
   end;
 
-  TKeyboardHook = class sealed(THook)
+  TKeyboardHook = class sealed(TBaseKeyboardHook)
   private
     FKeyState: TKeyStates;
-    FKeyNames: TKeyNames;
   protected
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
     procedure PostExecute(var HookMsg: THookMessage); override;
     function GetHookID: Integer; override;
   public
     property KeyStates: TKeyStates read FKeyState;
-    property KeyName: TKeyNames read FKeyNames;
   end;
 
   TMouseHook = class sealed(THook)
@@ -231,11 +240,10 @@ type
     function GetHookID: Integer; override;
   end;
 
-  TLowLevelKeyboardHook = class sealed(THook)
+  TLowLevelKeyboardHook = class sealed(TBaseKeyboardHook)
   private
     FHookStruct: TKBDLLHookStruct;
     FLowLevelKeyStates: TLowLevelKeyStates;
-    FKeyNames: TKeyNames;
   protected
     function GetHookID: Integer; override;
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
@@ -243,7 +251,6 @@ type
   public
     property HookStruct: TKBDLLHookStruct read FHookStruct;
     property LowLevelKeyStates: TLowLevelKeyStates read FLowLevelKeyStates;
-    property KeyName: TKeyNames read FKeyNames;
   end;
 
   TLowLevelMouseHook = class sealed(THook)
@@ -291,8 +298,8 @@ implementation
 
 uses
   System.SysUtils
-//  , VCL.Menus
-  ;
+  // , VCL.Menus
+    ;
 
 { TLowLevelMouseHook }
 
@@ -408,11 +415,22 @@ procedure TLowLevelKeyboardHook.PostExecute(var HookMsg: THookMessage);
 begin
   ZeroMemory(@FHookStruct, SizeOf(TKBDLLHookStruct));
   ZeroMemory(@FLowLevelKeyStates, SizeOf(TLowLevelKeyStates));
-  ZeroMemory(@FKeyNames, SizeOf(TKeyNames));
+  KeyName.Clear;
   inherited;
 end;
 
 procedure TLowLevelKeyboardHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
+  Function GetKeyName: String;
+  var
+    dwMsg: DWORD;
+  begin
+    dwMsg := 1;
+    dwMsg := dwMsg + (FHookStruct.ScanCode shl 16);
+    dwMsg := dwMsg + (FHookStruct.flags shl 24);
+    SetLength(Result, 128);
+    SetLength(Result, GetKeynameText(dwMsg, @Result[1], Length(Result)));
+  end;
+
 var
   KBS: TKeyboardState;
   VKeyName: array [0 .. MAX_KEY_NAME_LENGTH] of Char;
@@ -439,30 +457,10 @@ begin
       KeyState := ksKeyDown;
   end;
 
-  dwMsg := 1;
-  dwMsg := dwMsg + (FHookStruct.ScanCode shl 16);
-  dwMsg := dwMsg + (FHookStruct.flags shl 24);
+  KeyName.ScanCode := FHookStruct.ScanCode;
+  KeyName.SpeciaKkey := (HookMsg.LParam and $1000000) <> 0;
+  KeyName.KeyExtName := GetKeyName;
 
-
-  if GetKeyNameText(dwMsg, @VKeyName, SizeOf(VKeyName)) > 0 then
-    FKeyNames.KeyExtName := VKeyName
-  else
-    FKeyNames.KeyExtName := '';
-
-  ZeroMemory(@VKeyName, $D * SizeOf(Char));
-  ZeroMemory(@FKeyNames.KeyChar, 2 * SizeOf(Char));
-  FKeyNames.ScanCode := FHookStruct.vkCode;
-  try
-    CharCount :=
-{$IFDEF UNICODE}
-      ToUnicode(FHookStruct.vkCode, FHookStruct.ScanCode, KBS, @VKeyName, 2, 0);
-{$ELSE}
-      ToAscii(FHookStruct.vkCode, FHookStruct.ScanCode, KBS, @VKeyName, 0);
-{$ENDIF}
-  except
-
-  end;
-  Move(VKeyName, FKeyNames.KeyChar, CharCount);
   inherited;
 end;
 
@@ -562,10 +560,16 @@ procedure TKeyboardHook.PostExecute(var HookMsg: THookMessage);
 begin
   inherited;
   ZeroMemory(@FKeyState, SizeOf(TKeyState));
-  ZeroMemory(@FKeyNames, SizeOf(TKeyNames));
+  ken
 end;
 
 procedure TKeyboardHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
+  function GetKeyName: string;
+  begin
+    SetLength(Result, 128);
+    SetLength(Result, GetKeynameText(HookMsg.WParam, @Result[1], Length(Result)));
+  end;
+
 var
   KBS: TKeyboardState;
   VKeyName: array [0 .. MAX_KEY_NAME_LENGTH - 1] of Char;
@@ -580,7 +584,7 @@ begin
   FKeyState.ShiftDown := (GetKeyState(VK_SHIFT) and (1 shl 15)) = 0;
   FKeyState.KeyState := TKeyState(HookMsg.LParam shr 30);
 
-  FKeyNames.ScanCode := HookMsg.Msg;
+  KeyName.ScanCode := HookMsg.Msg;
 
   if (FKeyState.KeyRepeated and FKeyState.KeyDown) then
     Inc(FKeyState.RepeatCount)
@@ -589,33 +593,7 @@ begin
 
   GetKeyboardState(KBS);
 
-  if GetKeyNameText(HookMsg.WParam, @VKeyName, SizeOf(VKeyName)) > 0 then
-    FKeyNames.KeyExtName := VKeyName
-  else
-    FKeyNames.KeyExtName := '';
-
-  ZeroMemory(@VKeyName, $D * SizeOf(Char));
-  ZeroMemory(@FKeyNames.KeyChar, $2 * SizeOf(Char));
-  try
-    CharCount :=
-{$IFDEF UNICODE}
-      ToUnicode(HookMsg.Msg, HookMsg.LParam, KBS, @VKeyName, 2, 0);
-{$ELSE}
-      ToAscii(HookMsg.Msg, HookMsg.LParam, KBS, @VKeyName, 0);
-{$ENDIF}
-  except
-    CharCount := 1;
-  end;
-
-  if VKeyName[0] = VKeyName[1] then
-    CharCount := 1;
-
-  // There is a minor bug in Windows when pressing the TREMA (и) key
-  // ToUnicode actual return two chars (ии) insted of one (и)
-
-  FKeyState.CharCount := CharCount;
-  Move(VKeyName, FKeyNames.KeyChar, CharCount * SizeOf(Char));
-
+  KeyName.KeyExtName :=GetKeyName;
   inherited;
 end;
 
@@ -671,6 +649,29 @@ end;
 class function THookInstance<T>.CreateHook(AOwner: TComponent): T;
 begin
   Result := THookContainer<T>.Construct(AOwner)
+end;
+
+{ TBaseKeyboardHook }
+
+constructor TBaseKeyboardHook.Create;
+begin
+  inherited;
+  FKeyNames := TKeyNames.Create;
+end;
+
+destructor TBaseKeyboardHook.Destroy;
+begin
+  FKeyNames.Free;
+  inherited;
+end;
+
+{ TKeyNames }
+
+procedure TKeyNames.Clear;
+begin
+  ScanCode := 0;
+  SpeciaKkey := False;
+  KeyExtName := string.empty;
 end;
 
 end.
