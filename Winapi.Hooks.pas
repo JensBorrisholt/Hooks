@@ -164,18 +164,18 @@ type
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
     procedure PostExecute(var HookMsg: THookMessage); override;
   public
-    property CwpRetStruct : TCwpRetStruct read FCwpRetStruct;
+    property CwpRetStruct: TCwpRetStruct read FCwpRetStruct;
   end;
 
   TCallWndProcRetHook = class sealed(THook)
   private
-    FCWPRetStruct: TCwpRetStruct;
+    FCwpRetStruct: TCwpRetStruct;
   protected
     function GetHookID: Integer; override;
     procedure PreExecute(var HookMsg: THookMessage; var Handled: Boolean); override;
     procedure PostExecute(var HookMsg: THookMessage); override;
   public
-    property CWPRetStruct: TCwpRetStruct read FCWPRetStruct;
+    property CwpRetStruct: TCwpRetStruct read FCwpRetStruct;
   end;
 
   TCBTHook = class sealed(THook)
@@ -297,9 +297,7 @@ type
 implementation
 
 uses
-  System.SysUtils
-  // , VCL.Menus
-    ;
+  System.SysUtils;
 
 { TLowLevelMouseHook }
 
@@ -433,11 +431,7 @@ procedure TLowLevelKeyboardHook.PreExecute(var HookMsg: THookMessage; var Handle
 
 var
   KBS: TKeyboardState;
-  VKeyName: array [0 .. MAX_KEY_NAME_LENGTH] of Char;
-  dwMsg: DWORD;
-  CharCount: Integer;
 begin
-  CharCount := 1;
   FHookStruct := pKBDLLHOOKSTRUCT(HookMsg.WParam)^;
 
   GetKeyboardState(KBS);
@@ -493,12 +487,12 @@ end;
 procedure TCallWndProcRetHook.PostExecute(var HookMsg: THookMessage);
 begin
   inherited;
-  ZeroMemory(@FCWPRetStruct, SizeOf(TCwpRetStruct));
+  ZeroMemory(@FCwpRetStruct, SizeOf(TCwpRetStruct));
 end;
 
 procedure TCallWndProcRetHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
 begin
-  FCWPRetStruct := pCwpRetStruct(HookMsg.LParam)^;
+  FCwpRetStruct := pCwpRetStruct(HookMsg.LParam)^;
   inherited;
 end;
 
@@ -560,7 +554,7 @@ procedure TKeyboardHook.PostExecute(var HookMsg: THookMessage);
 begin
   inherited;
   ZeroMemory(@FKeyState, SizeOf(TKeyState));
-  ken
+  KeyName.Clear;
 end;
 
 procedure TKeyboardHook.PreExecute(var HookMsg: THookMessage; var Handled: Boolean);
@@ -572,8 +566,6 @@ procedure TKeyboardHook.PreExecute(var HookMsg: THookMessage; var Handled: Boole
 
 var
   KBS: TKeyboardState;
-  VKeyName: array [0 .. MAX_KEY_NAME_LENGTH - 1] of Char;
-  CharCount: Integer;
 begin
   FKeyState.KeyDown := (HookMsg.LParam and (1 shl 31)) = 0;
   FKeyState.KeyRepeated := (HookMsg.LParam and (1 shl 30)) = 0;
